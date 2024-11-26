@@ -1,0 +1,24 @@
+[
+  {
+    "Name": "Igge",
+    "Health": 100,
+    "MaxHealth": 100,
+    "Power": 15,
+    "Armor": 5,
+    "Coins": 150,
+    "Potions": 2,
+    "Experience": 12,
+    "CurrentClass": 0
+  },
+  {
+    "Name": "Eldor",
+    "Health": 100,
+    "MaxHealth": 100,
+    "Power": 15,
+    "Armor": 5,
+    "Coins": 150,
+    "Potions": 4,
+    "Experience": 12,
+    "CurrentClass": 0
+  }
+]
