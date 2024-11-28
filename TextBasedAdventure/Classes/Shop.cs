@@ -1,4 +1,5 @@
 ﻿using System;
+using TextBasedAdventure.Validators;
 
 namespace TextBasedAdventure.Classes
 {
@@ -10,9 +11,9 @@ namespace TextBasedAdventure.Classes
         {
             while (true)
             {
-                int potionPrice = Math.Min(50, 20 + 5 * player.Potions);
-                int armorPrice = Math.Min(300, 50 * (player.Armor + 1));
-                int weaponPrice = Math.Min(300, 50 * (player.Power + 1));
+                int weaponPrice = CalculatePrice("weapon", player);
+                int armorPrice = CalculatePrice("armor", player);
+                int potionPrice = CalculatePrice("potion", player);
 
                 Console.Clear();
                 Console.WriteLine("You enter the mysterious shop. The shopkeeper eyes you with suspicion.");
@@ -37,7 +38,16 @@ namespace TextBasedAdventure.Classes
                 Console.WriteLine("========================");
 
                 Console.Write("\nEnter your choice: ");
-                string input = Console.ReadLine()!.ToLower();
+                string? input = Console.ReadLine();
+
+                if (string.IsNullOrWhiteSpace(input))
+                {
+                    Console.WriteLine("Input cannot be empty. Please try again.");
+                    Console.ReadKey();
+                    continue;
+                }
+
+                input = input.ToLower();
 
                 if (input == "w" || input == "weapon")
                     TryToBuy("weapon", weaponPrice, player);
@@ -48,15 +58,46 @@ namespace TextBasedAdventure.Classes
                 else if (input == "e" || input == "exit")
                     break;
                 else
+                {
                     Console.WriteLine("Invalid input. Please try again.");
                     Console.ReadKey();
+                }
             }
+        }
+        private static int CalculatePrice(string itemType, Player player)
+        {
+            return itemType switch
+            {
+                "weapon" => Math.Min(300, 50 * (player.Power + 1)),
+                "armor" => Math.Min(300, 50 * (player.Armor + 1)),
+                "potion" => Math.Min(50, 20 + 5 * player.Potions),
+                _ => throw new ArgumentException("Invalid item type.")
+            };
         }
         private static void TryToBuy(string item, int cost, Player player)
         {
-            if (player.Coins >= cost)
+            if (!new[] { "weapon", "armor", "potion" }.Contains(item))
             {
-                player.DecreaseCoins(cost);  
+                Console.WriteLine("Invalid item type.");
+                return;
+            }
+
+            if (player.Coins < cost)
+            {
+                Console.WriteLine("You don't have enough coins.");
+            }
+            else if (item == "weapon" && player.Power >= 30) 
+            {
+                Console.WriteLine("Your weapon is already at maximum strength.");
+            }
+            else if (item == "armor" && player.Armor >= 30) 
+            {
+                Console.WriteLine("Your armor is already at maximum toughness.");
+            }
+            else
+            {
+                player.DecreaseCoins(cost);
+
                 if (item == "weapon")
                     player.AddPower(1);
                 else if (item == "armor")
@@ -65,10 +106,6 @@ namespace TextBasedAdventure.Classes
                     player.AddPotion(1);
 
                 Console.WriteLine($"You purchased {item} for {cost} coins.");
-            }
-            else
-            {
-                Console.WriteLine("You don't have enough coins.");
             }
             Console.ReadKey();
         }

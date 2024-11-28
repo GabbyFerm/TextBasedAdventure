@@ -103,14 +103,22 @@ namespace TextBasedAdventure.Classes
 
             while (player.Health > 0 && enemy.IsAlive)
             {
-                DisplayStatus(player, enemy); 
+                DisplayStatus(player, enemy);
 
                 string playerInput = GetPlayerAction();
+
+                if (string.IsNullOrEmpty(playerInput) || !IsValidAction(playerInput))
+                {
+                    Console.WriteLine("Invalid action! Please enter a valid command: (A)ttack, (D)efend, (H)eal, or (R)un.");
+                    Thread.Sleep(800);
+                    continue; 
+                }
+
                 ExecutePlayerAction(playerInput, player, enemy);
 
                 if (enemy.IsAlive)
                 {
-                    EnemyTurn(player, enemy); 
+                    EnemyTurn(player, enemy);
                 }
 
                 if (player.Health <= 0)
@@ -145,6 +153,11 @@ namespace TextBasedAdventure.Classes
                 Console.ReadLine();
             }
         }
+        private bool IsValidAction(string input)
+        {
+            return input == "a" || input == "attack" || input == "d" || input == "defend" ||
+                   input == "r" || input == "run" || input == "h" || input == "heal";
+        }
 
         private void DisplayStatus(Player player, Enemy enemy)
         {
@@ -160,7 +173,7 @@ namespace TextBasedAdventure.Classes
         private string GetPlayerAction()
         {
             string input = Console.ReadLine()!.ToLower();
-            return input;
+            return input.Trim();
         }
 
         private void ExecutePlayerAction(string playerInput, Player player, Enemy enemy)
