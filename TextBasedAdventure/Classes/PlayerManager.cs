@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Spectre.Console;
+using Newtonsoft.Json;
 using System.Numerics;
 using System.Xml.Linq;
 using TextBasedAdventure.Classes;
@@ -22,7 +23,7 @@ public static class PlayerManager
     {
         ShowBackstory();
 
-        Console.Write("Enter your name: ");
+        AnsiConsole.Markup("[springgreen4]Enter your name:[/]\n");
         string playerName = Console.ReadLine()!.Trim();
 
         var player = new Player(playerName);
@@ -36,11 +37,11 @@ public static class PlayerManager
             {
                 Console.WriteLine(error.ErrorMessage);
             }
-            Console.WriteLine("Please re-enter player details.");
+            AnsiConsole.Markup("[red]Please re-enter player details.[/]\n");
             return CreateNewPlayer();
         }
 
-        Console.WriteLine("Choose your class: Mage, Archer, Warrior");
+        AnsiConsole.Markup("[springgreen4]Choose your class: Mage, Archer, Warrior[/]\n");
         while (true)
         {
             string input = Console.ReadLine()!.Trim().ToLower();
@@ -49,7 +50,7 @@ public static class PlayerManager
                 player.CurrentClass = playerClass;
                 break;
             }
-            Console.WriteLine("Invalid class. Please choose Mage, Archer, or Warrior.");
+            AnsiConsole.Markup("[red]Invalid class. Please choose Mage, Archer, or Warrior.[/]\n");
         }
 
         return player;
@@ -74,40 +75,64 @@ public static class PlayerManager
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading players: {ex.Message}");
+            AnsiConsole.Markup($"[red]Error loading players: {ex.Message}[/]\n");
             return new List<Player>();
         }
     }
     public static Player LoadOrCreatePlayer()
     {
+        if (CurrentPlayer != null)
+        {
+            return CurrentPlayer;
+        }
+
         while (true)
         {
             Console.Clear();
-            Console.WriteLine("=========== START MENU ===========");
-            Console.WriteLine("1. Load an existing player");
-            Console.WriteLine("2. Create a new player");
-            Console.WriteLine("3. Exit game");
-            Console.WriteLine("=================================");
-            Console.Write("Choose an option (1/2/3): ");
-            string choice = Console.ReadLine()!.Trim();
 
-            if (choice == "1")
+            AnsiConsole.Markup("[plum4]-------- START MENU --------[/]\n\n");
+
+            var choice = AnsiConsole.Prompt(
+                new SelectionPrompt<string>()
+                    .Title("[italic grey53]Choose an option with arrowkeys up/down:[/]")
+                    .PageSize(3)
+                    .HighlightStyle(new Style(Color.SpringGreen4))
+                    .AddChoices(new[]
+                    {
+                    "[plum4]1. Load an existing player[/]",
+                    "[plum4]2. Create a new player[/]",
+                    "[plum4]3. Exit game[/]"
+                    }));
+
+            var selectedOption = choice.Replace("[plum4]", "").Split('.')[0].Trim();
+
+            switch (selectedOption)
             {
-                return LoadPlayer(); 
-            }
-            else if (choice == "2")
-            {
-                return CreateNewPlayer(); 
-            }
-            else if (choice == "3")
-            {
-                Console.WriteLine("Thank you for playing Dungeon Quest!");
-                Environment.Exit(0); 
-            }
-            else
-            {
-                Console.WriteLine("Invalid input. Please choose 1, 2, or 3.");
-                Console.ReadKey();
+                case "1":
+                    Player selectedPlayer = LoadPlayer();
+                    if (selectedPlayer != null)
+                    {
+                        AnsiConsole.Clear();  
+                        AnsiConsole.Markup($"\n\n[italic plum4]Player {selectedPlayer.Name} the mighty {selectedPlayer.CurrentClass}, loaded successfully.[/]\n\n");
+                        AnsiConsole.Markup("[italic grey53]Press enter to continue...[/]");
+                        Console.ReadLine();
+                        GameManager.ShowMainMenu(selectedPlayer);
+                        return selectedPlayer;
+                    }
+                    break;
+
+                case "2":
+                    return CreateNewPlayer();
+
+                case "3":
+                    AnsiConsole.Markup("[plum4]Thank you for playing Dungeon Quest![/]\n");
+                    Environment.Exit(0);
+                    break;
+
+                default:
+                    AnsiConsole.Markup("[red]Invalid input. Please choose a valid option.[/]\n");
+                    Console.ReadKey();
+                    break;
             }
         }
     }
@@ -117,35 +142,41 @@ public static class PlayerManager
 
         if (AllPlayers.Count == 0)
         {
-            Console.WriteLine("\nNo saved players found, redirecting to Create new player...");
+            AnsiConsole.Markup("\n[red]No saved players found, redirecting to Create new player...[/]");
             Thread.Sleep(1500);
             return CreateNewPlayer();
         }
 
-        Console.WriteLine("Saved players:");
-        for (int i = 0; i < AllPlayers.Count; i++)
+        var playerMenu = new SelectionPrompt<string>()
+            .Title("[italic grey53]Saved players, choose with arrowkeys up/down:[/]")
+            .PageSize(10)
+            .HighlightStyle(new Style(Color.SpringGreen4));
+
+        foreach (var player in AllPlayers)
         {
-            Console.WriteLine($"{i + 1}. {AllPlayers[i].Name}");
+            playerMenu.AddChoice($"[plum4]{player.Name}[/]");
         }
 
-        Console.Write("Select a player by number: ");
-        while (true)
+        string selectedPlayerName = AnsiConsole.Prompt(playerMenu);
+
+        selectedPlayerName = selectedPlayerName.Replace("[plum4]", "").Replace("[/]", "").Trim();
+
+        var selectedPlayer = AllPlayers.FirstOrDefault(player => player.Name.Equals(selectedPlayerName, StringComparison.OrdinalIgnoreCase));
+
+        if (selectedPlayer == null)
         {
-            if (int.TryParse(Console.ReadLine(), out int index) && index >= 1 && index <= AllPlayers.Count)
-            {
-                return AllPlayers[index - 1];
-            }
-            else
-            {
-                Console.WriteLine("Invalid selection. Please choose a valid player number.");
-            }
+            AnsiConsole.Markup("[red]Error: Selected player not found.[/]\n");
+            return CreateNewPlayer();
         }
+
+        return selectedPlayer;
     }
+
     public static void SavePlayer(Player player)
     {
         if (player == null)
         {
-            Console.WriteLine("No player to save.");
+            AnsiConsole.Markup("[red]No player to save.[/]\n");
             return;
         }
 
@@ -169,11 +200,11 @@ public static class PlayerManager
 
             File.WriteAllText(filePath, JsonConvert.SerializeObject(allPlayers, Formatting.Indented));
 
-            Console.WriteLine($"Player '{player.Name}' saved successfully!");
+            AnsiConsole.Markup($"[red]Player '{player.Name}' saved successfully![/]\n");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error saving player: {ex.Message}");
+            AnsiConsole.Markup($"[red]Error saving player: {ex.Message}[/]\n");
         }
 
         Thread.Sleep(1500);
@@ -182,8 +213,8 @@ public static class PlayerManager
     public static void ShowBackstory()
     {
         Console.Clear();
-        Console.WriteLine("In a world of shadows and peril, you are the last hope against ancient evils.");
-        Console.WriteLine("Embark on a journey filled with danger, riddles, and glory!\n");
+        AnsiConsole.Markup("\n[springgreen4]In a world of shadows and peril, you are the last hope against ancient evils.[/]");
+        AnsiConsole.Markup("\n[springgreen4]Embark on a journey filled with danger, riddles, and glory!\n\n[/]");
     }
 
     public static void ShowPlayerStats(Player player)
@@ -191,20 +222,19 @@ public static class PlayerManager
         Console.Clear();
         if (player == null)
         {
-            Console.WriteLine("Error: Player object is null!");
+            AnsiConsole.Markup($"[red]Error: Player object is null![/]\n");
             return;
         }
-
-        Console.WriteLine("==========================");
-        Console.WriteLine($"Name: {player.Name}");
-        Console.WriteLine($"Health: {player.Health}/{player.MaxHealth}");
-        Console.WriteLine($"Power: {player.Power}");
-        Console.WriteLine($"Armor: {player.Armor}");
-        Console.WriteLine($"Coins: {player.Coins}");
-        Console.WriteLine($"Potions: {player.Potions}");
-        Console.WriteLine($"Experience: {player.Experience}");
-        Console.WriteLine("==========================");
-        Console.WriteLine("\nPress any key to return to the main menu...");
+        AnsiConsole.Markup("[plum4]------- PLAYER STATS -------[/]\n");
+        AnsiConsole.Markup($"[plum4]Name: {player.Name}[/]\n");
+        AnsiConsole.Markup($"[plum4]Health: {player.Health}/{player.MaxHealth}[/]\n");
+        AnsiConsole.Markup($"[plum4]Power: {player.Power}[/]\n");
+        AnsiConsole.Markup($"[plum4]Armor: {player.Armor}[/]\n");
+        AnsiConsole.Markup($"[plum4]Coins: {player.Coins}[/]\n");
+        AnsiConsole.Markup($"[plum4]Potions: {player.Potions}[/]\n");
+        AnsiConsole.Markup($"[plum4]Experience: {player.Experience}[/]\n");
+        AnsiConsole.Markup("[plum4]-----------------------------[/]\n");
+        AnsiConsole.Markup("\n[italic grey53]Press any key to return to the main menu...[/]\n");
         Console.ReadKey();
     }
 }
