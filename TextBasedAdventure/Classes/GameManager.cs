@@ -1,4 +1,6 @@
-﻿using TextBasedAdventure.Classes;
+﻿using Spectre.Console;
+using Figgle;
+using TextBasedAdventure.Classes;
 using TextBasedAdventure.Validators;
 
 public class GameManager
@@ -14,50 +16,61 @@ public class GameManager
     public static void ShowIntro()
     {
         Console.Clear();
-        Console.WriteLine("===================================");
-        Console.WriteLine("          DUNGEON QUEST           ");
-        Console.WriteLine("===================================");
-        Console.WriteLine("The Dark Dungeon awaits...");
-        Console.WriteLine("\nA long time ago, in a land filled with mystery and danger, dark forces began to rise.");
-        Console.WriteLine("Heroes from all over the world gathered to face the darkness that threatened to engulf everything.");
-        Console.WriteLine("Now, it's your turn to step into the fray. Will you be the one to stop the evil that lurks in the shadows?");
-        Console.WriteLine("The adventure begins now...");
-        Console.WriteLine("===================================");
-        Console.WriteLine("\nPress any key to begin...");
+        var header = FiggleFonts.Slant.Render("Dungeon Quest");
+        AnsiConsole.Markup($"[plum4]{header}[/]");
+
+        AnsiConsole.Markup("\n[springgreen4]The Dark Dungeon awaits...[/]\n\n");
+        AnsiConsole.Markup("[springgreen4]A long time ago, in a land filled with mystery and danger, dark forces began to rise.[/]\n");
+        AnsiConsole.Markup("[springgreen4]Heroes from all over the world gathered to face the darkness that threatened to engulf everything.[/]\n");
+        AnsiConsole.Markup("[springgreen4]Now, it's your turn to step into the fray. Will you be the one to stop the evil that lurks in the shadows?[/]\n");
+        AnsiConsole.Markup("[springgreen4]The adventure begins now...[/]\n\n");
+
+        AnsiConsole.Markup("[italic grey53]Press any key to begin...[/]");
         Console.ReadKey();
     }
     public static void ShowMainMenu(Player player)
     {
+        if (player == null)
+        {
+            AnsiConsole.Markup("[red]Error: No current player found![/]\n");
+            return; 
+        }
+
         EncounterManager encounterManager = new EncounterManager();
-        var menuValidator = new MenuChoiceValidator(1, 5);
+        var menuValidator = new MenuChoiceValidator(1, 6);
 
         while (true)
         {
             Console.Clear();
-            Console.WriteLine("=========== MAIN MENU ===========");
-            Console.WriteLine("1. Start your quest");
-            Console.WriteLine("2. Visit the shop");
-            Console.WriteLine("3. Check player stats");
-            Console.WriteLine("4. Save player");
-            Console.WriteLine("5. Back to Start Menu");
-            Console.WriteLine("6. Exit game");
-            Console.WriteLine("=================================");
-            Console.Write("Choose an option (1/2/3/4/5/6): ");
-            string menuChoice = Console.ReadLine()!;
+            AnsiConsole.Markup("[plum4]-------- MAIN MENU --------[/]\n\n");
+            var choice = AnsiConsole.Prompt(
+                new SelectionPrompt<string>()
+                    .Title("[italic grey53]Choose an option:[/]")
+                    .PageSize(6)
+                    .HighlightStyle(new Style(foreground: Color.SpringGreen4)) 
+                    .AddChoices(new[]
+                    {
+                    "[plum4]1. Start your quest[/]",
+                    "[plum4]2. Visit the shop[/]",
+                    "[plum4]3. Check player stats[/]",
+                    "[plum4]4. Save player[/]",
+                    "[plum4]5. Back to Start Menu[/]",
+                    "[plum4]6. Exit game[/]"
+                    }));
 
-            var result = menuValidator.Validate(menuChoice);
+            var selectedOption = choice.Replace("[plum4]", "").Split('.')[0].Trim();
 
-            if (!result.IsValid)
+            if (!menuValidator.Validate(selectedOption).IsValid)
             {
-                Console.WriteLine(result.Errors[0].ErrorMessage);
+                AnsiConsole.Markup("[red]Invalid choice. Please select a valid option![/]\n");
                 Console.ReadKey();
                 continue;
             }
 
-            switch (menuChoice)
+            switch (selectedOption)
             {
                 case "1":
-                    encounterManager.StartEncounter(player);
+                    new EncounterManager().StartEncounter(player);
                     break;
                 case "2":
                     Shop.LoadShop(player);
@@ -68,18 +81,20 @@ public class GameManager
                 case "4":
                     if (CurrentPlayer != null)
                     {
-                        PlayerManager.SavePlayer(CurrentPlayer); 
+                        PlayerManager.SavePlayer(CurrentPlayer);
                     }
                     else
                     {
-                        Console.WriteLine("No player to save.");
+                        AnsiConsole.Markup("[red]No player to save.[/]\n");
+                        Console.ReadKey();
                     }
                     break;
-                case "5":  
-                    player = PlayerManager.LoadOrCreatePlayer();
+                case "5":
+                    CurrentPlayer = PlayerManager.LoadOrCreatePlayer();
+                    ShowMainMenu(CurrentPlayer);
                     return;
                 case "6":
-                    Console.WriteLine("Thank you for playing Dungeon Quest!");
+                    AnsiConsole.Markup("[purple]Thank you for playing Dungeon Quest![/]\n");
                     Environment.Exit(0);
                     break;
             }

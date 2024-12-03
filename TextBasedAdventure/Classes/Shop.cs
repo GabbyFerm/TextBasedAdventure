@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Spectre.Console;
+using System;
 using TextBasedAdventure.Validators;
 
 namespace TextBasedAdventure.Classes
@@ -16,52 +17,51 @@ namespace TextBasedAdventure.Classes
                 int potionPrice = CalculatePrice("potion", player);
 
                 Console.Clear();
-                Console.WriteLine("You enter the mysterious shop. The shopkeeper eyes you with suspicion.");
-                Console.WriteLine("‘I’ve heard of you,’ the shopkeeper says. ‘You’re the one who’s been causing a stir in the dungeon…’");
-                Console.WriteLine("\nDo you wish to buy something?");
+                AnsiConsole.Markup("[springgreen4]You enter the mysterious shop. The shopkeeper eyes you with suspicion.[/]\n");
+                AnsiConsole.Markup("[springgreen4]‘I’ve heard of you,’ the shopkeeper says. ‘You’re the one who’s been causing a stir in the dungeon…’[/]\n");
+                AnsiConsole.Markup("\n[springgreen4]Do you wish to buy something?[/]\n");
 
-                Console.WriteLine("           SHOP        ");
-                Console.WriteLine("========================");
-                Console.WriteLine($"(W)eapon:            ${weaponPrice}");
-                Console.WriteLine($"(A)rmor:             ${armorPrice}");
-                Console.WriteLine($"(P)otion:            ${potionPrice}");
-                Console.WriteLine("(E)xit");
-                Console.WriteLine("========================\n");
+                AnsiConsole.Markup("\n[grey53]       PLAYER STATS     [/]\n");
+                AnsiConsole.Markup("[grey53]========================[/]\n");
+                AnsiConsole.Markup($"[grey53]Current health: {player.Health}[/]\n");
+                AnsiConsole.Markup($"[grey53]Coins: {player.Coins}[/]\n");
+                AnsiConsole.Markup($"[grey53]Weapon strength: {player.Power}[/]\n");
+                AnsiConsole.Markup($"[grey53]Armor toughness: {player.Armor}[/]\n");
+                AnsiConsole.Markup($"[grey53]Potions: {player.Potions}[/]\n");
+                AnsiConsole.Markup("[grey53]========================[/]\n\n");
 
-                Console.WriteLine("\n       PLAYER STATS     ");
-                Console.WriteLine("========================");
-                Console.WriteLine($"Current health: {player.Health}");
-                Console.WriteLine($"Coins: {player.Coins}");
-                Console.WriteLine($"Weapon strength: {player.Power}");
-                Console.WriteLine($"Armor toughness: {player.Armor}");
-                Console.WriteLine($"Potions: {player.Potions}");
-                Console.WriteLine("========================");
+                AnsiConsole.Markup("[plum4]-------- SHOP MENU --------[/]\n\n");
 
-                Console.Write("\nEnter your choice: ");
-                string? input = Console.ReadLine();
+                var shopMenu = AnsiConsole.Prompt(
+                new SelectionPrompt<string>()
+                    .Title("[italic grey53]Choose what you want to buy or exit:[/]")
+                    .PageSize(4)
+                    .HighlightStyle(new Style(foreground: Color.SpringGreen4))  
+                    .AddChoices(
+                           $"[plum4]Weapon: ${weaponPrice}[/]",
+                        $"[plum4]Armor: ${armorPrice}[/]",
+                        $"[plum4]Potion: ${potionPrice}[/]",
+                        "[plum4]Exit[/]"
+                    )
+                );
 
-                if (string.IsNullOrWhiteSpace(input))
+                if (shopMenu == "[plum4]Exit[/]")
                 {
-                    Console.WriteLine("Input cannot be empty. Please try again.");
-                    Console.ReadKey();
-                    continue;
+                    break;  
                 }
 
-                input = input.ToLower();
+                string selectedItem = shopMenu.Replace("[plum4]", "").Trim();  
 
-                if (input == "w" || input == "weapon")
-                    TryToBuy("weapon", weaponPrice, player);
-                else if (input == "a" || input == "armor")
-                    TryToBuy("armor", armorPrice, player);
-                else if (input == "p" || input == "potion")
-                    TryToBuy("potion", potionPrice, player);
-                else if (input == "e" || input == "exit")
-                    break;
-                else
+                string itemType = selectedItem.Split(':')[0].Trim().ToLower();  
+                int price = itemType switch
                 {
-                    Console.WriteLine("Invalid input. Please try again.");
-                    Console.ReadKey();
-                }
+                    "weapon" => weaponPrice,
+                    "armor" => armorPrice,
+                    "potion" => potionPrice,
+                    _ => throw new ArgumentException($"Invalid item type: {selectedItem}")  
+                };
+
+                TryToBuy(itemType, price, player);
             }
         }
         private static int CalculatePrice(string itemType, Player player)
@@ -78,21 +78,25 @@ namespace TextBasedAdventure.Classes
         {
             if (!new[] { "weapon", "armor", "potion" }.Contains(item))
             {
-                Console.WriteLine("Invalid item type.");
+                AnsiConsole.Markup("\n[italic red]Invalid item type.[/]\n");
+                Thread.Sleep(1000); 
                 return;
             }
 
             if (player.Coins < cost)
             {
-                Console.WriteLine("You don't have enough coins.");
+                AnsiConsole.Markup("\n[italic red]You don't have enough coins.[/]\n");
+                Thread.Sleep(1000); 
             }
-            else if (item == "weapon" && player.Power >= 30) 
+            else if (item == "weapon" && player.Power >= 30)
             {
-                Console.WriteLine("Your weapon is already at maximum strength.");
+                AnsiConsole.Markup("\n[italic red]Your weapon is already at maximum strength.[/]\n");
+                Thread.Sleep(1000); 
             }
-            else if (item == "armor" && player.Armor >= 30) 
+            else if (item == "armor" && player.Armor >= 30)
             {
-                Console.WriteLine("Your armor is already at maximum toughness.");
+                AnsiConsole.Markup("\n[italic red]Your armor is already at maximum toughness.[/]\n");
+                Thread.Sleep(1000); 
             }
             else
             {
@@ -105,9 +109,9 @@ namespace TextBasedAdventure.Classes
                 else if (item == "potion")
                     player.AddPotion(1);
 
-                Console.WriteLine($"You purchased {item} for {cost} coins.");
+                AnsiConsole.Markup($"[italic plum4]You purchased {item} for {cost} coins.[/]\n");
+                Thread.Sleep(1000); 
             }
-            Console.ReadKey();
         }
     }
 }
